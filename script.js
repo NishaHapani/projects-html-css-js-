@@ -1,60 +1,74 @@
-async function getWeather() {
-    const city = document.getElementById('city').value;
-    const apiKey = 'da5cc509bc967933cf9f957a7a06eb9b'; // Replace with a valid API key
-    const currentWeatherUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
-    const forecastWeatherUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
+let board = ['', '', '', '', '', '', '', '', ''];
+let currentPlayer = '♚'; // Start with King
+let gameActive = true;
 
-    try {
-        // Fetch current weather
-        const currentResponse = await fetch(currentWeatherUrl);
-        const currentData = await currentResponse.json();
+const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6],
+];
 
-        document.getElementById('cityName').textContent = currentData.name;
-        document.getElementById('temperature').textContent = `Temperature: ${currentData.main.temp}°C`;
-        document.getElementById('description').textContent = currentData.weather[0].description;
-
-        const currentIcon = currentData.weather[0].icon;
-        document.querySelector('.current-weather .icon').innerHTML = `<img src="https://openweathermap.org/img/wn/${currentIcon}@2x.png" alt="weather icon">`;
-
-        // Fetch forecast data
-        const forecastResponse = await fetch(forecastWeatherUrl);
-        const forecastData = await forecastResponse.json();
-
-        const forecastDays = document.querySelectorAll('.day');
-        forecastDays.forEach((day, index) => {
-            const forecast = forecastData.list[index * 8]; // 24-hour interval
-            const forecastIcon = forecast.weather[0].icon;
-
-            const weekday = new Date(forecast.dt_txt).toLocaleDateString('en-US', { weekday: 'long' });
-            day.querySelector('.weekday').textContent = weekday;
-            day.querySelector('.icon').innerHTML = `<img src="https://openweathermap.org/img/wn/${forecastIcon}@2x.png" alt="forecast icon">`;
-            day.querySelector('.temp').textContent = `${Math.round(forecast.main.temp)}°C`;
-        });
-    } catch (error) {
-        console.error('Error fetching weather data:', error);
+function makeMove(index) {
+    if (board[index] !== '' || !gameActive) {
+        return;
     }
+
+    board[index] = currentPlayer;
+    document.getElementById(`cell-${index}`).textContent = currentPlayer;
+
+    checkForWinner();
 }
-function changeBackground(condition) {
-    const body = document.body;
-    body.className = ''; // Reset existing classes
 
-    switch (condition) {
-        case 'clear':
-            body.classList.add('clear');
+function checkForWinner() {
+    let roundWon = false;
+
+    for (let i = 0; i < winningConditions.length; i++) {
+        const [a, b, c] = winningConditions[i];
+        if (board[a] === '' || board[b] === '' || board[c] === '') {
+            continue;
+        }
+
+        if (board[a] === board[b] && board[b] === board[c]) {
+            roundWon = true;
+            highlightWinningCells(a, b, c);
             break;
-        case 'clouds':
-            body.classList.add('clouds');
-            break;
-        case 'rain':
-            body.classList.add('rain');
-            break;
-        case 'snow':
-            body.classList.add('snow');
-            break;
-        default:
-            body.classList.add('default');
-            break;
+        }
     }
 
-    console.log(`Background class applied: ${body.className}`); // Debug log
+    if (roundWon) {
+        document.getElementById('status').textContent = `Player ${currentPlayer} Wins! 🎉`;
+        gameActive = false;
+        return;
+    }
+
+    if (!board.includes('')) {
+        document.getElementById('status').textContent = 'It\'s a Draw! 🤝';
+        gameActive = false;
+        return;
+    }
+
+    currentPlayer = currentPlayer === '♚' ? '♘' : '♚'; // Toggle between King and Knight
+    document.getElementById('status').textContent = `Player ${currentPlayer}'s Turn`;
+}
+
+function highlightWinningCells(a, b, c) {
+    document.getElementById(`cell-${a}`).classList.add('winning');
+    document.getElementById(`cell-${b}`).classList.add('winning');
+    document.getElementById(`cell-${c}`).classList.add('winning');
+}
+
+function resetGame() {
+    board = ['', '', '', '', '', '', '', '', ''];
+    currentPlayer = '♚';
+    gameActive = true;
+    document.getElementById('status').textContent = 'Player ♚\'s Turn';
+    document.querySelectorAll('.cell').forEach(cell => {
+        cell.textContent = '';
+        cell.classList.remove('winning');
+    });
 }
